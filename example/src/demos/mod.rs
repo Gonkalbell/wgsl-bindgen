@@ -12,11 +12,13 @@ pub struct DemoContext {
 
 pub mod fullscreen_effects_demo;
 pub mod gradient_triangle_demo;
+pub mod multisampled_texture_demo;
 pub mod particle_compute_demo;
 pub mod texture_array_demo;
 
 pub use fullscreen_effects_demo::FullscreenEffectsDemo;
 pub use gradient_triangle_demo::GradientTriangleDemo;
+pub use multisampled_texture_demo::MultisampledTextureDemo;
 pub use particle_compute_demo::ParticleComputeDemo;
 pub use texture_array_demo::TextureArrayDemo;
 
@@ -75,6 +77,7 @@ impl DemoManager {
       Box::new(TextureArrayDemo::new(device, queue, surface_format)),
       Box::new(GradientTriangleDemo::new(device, queue, surface_format)),
       Box::new(ParticleComputeDemo::new(device, queue, surface_format)),
+      Box::new(MultisampledTextureDemo::new(device, queue, surface_format)),
     ];
 
     Self {
@@ -131,6 +134,10 @@ impl DemoManager {
         }
         KeyCode::Digit4 => {
           self.switch_to_demo(3);
+          return true;
+        }
+        KeyCode::Digit5 => {
+          self.switch_to_demo(4);
           return true;
         }
         _ => {}

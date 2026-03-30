@@ -11,6 +11,7 @@ fn main() -> Result<()> {
     .add_entry_point("shaders/simple_array_demo.wgsl")
     .add_entry_point("shaders/overlay.wgsl")
     .add_entry_point("shaders/gradient_triangle.wgsl")
+    .add_entry_point("shaders/multisampled_texture_demo.wgsl")
     .add_entry_point("shaders/compute_demo/particle_physics.wgsl")
     .add_entry_point("shaders/compute_demo/particle_renderer.wgsl")
     .skip_hash_check(true)

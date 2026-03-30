@@ -451,8 +451,11 @@ fn generate_binding_type_for_type(
             naga::ScalarKind::Sint => quote!(wgpu::TextureSampleType::Sint),
             naga::ScalarKind::Uint => quote!(wgpu::TextureSampleType::Uint),
             naga::ScalarKind::Float => {
-              let filterable =
-                check_texture_filterability(binding_name, invoking_entry_module, options);
+              let filterable = if *multi {
+                false
+              } else {
+                check_texture_filterability(binding_name, invoking_entry_module, options)
+              };
               quote!(wgpu::TextureSampleType::Float { filterable: #filterable })
             }
             _ => panic!("Unsupported sample type: {kind:#?}"),

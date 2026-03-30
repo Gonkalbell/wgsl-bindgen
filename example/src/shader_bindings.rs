@@ -2,7 +2,7 @@
 //
 // ^ wgsl_bindgen version 0.22.0
 // Changes made to this file will not be saved.
-// SourceHash: db8f92bbe5e77ffae19e4a37b0232dbacd8fba4de0156ce5e36e2a0d3810649a
+// SourceHash: 784c6cc8cf311e17ab57187252acdee4a82d3cf372a18a2048b11979320f7900
 
 #![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
@@ -11,6 +11,7 @@ pub enum ShaderEntry {
   SimpleArrayDemo,
   Overlay,
   GradientTriangle,
+  MultisampledTextureDemo,
   ComputeDemoParticlePhysics,
   ComputeDemoParticleRenderer,
 }
@@ -21,6 +22,9 @@ impl ShaderEntry {
       Self::SimpleArrayDemo => simple_array_demo::create_pipeline_layout(device),
       Self::Overlay => overlay::create_pipeline_layout(device),
       Self::GradientTriangle => gradient_triangle::create_pipeline_layout(device),
+      Self::MultisampledTextureDemo => {
+        multisampled_texture_demo::create_pipeline_layout(device)
+      }
       Self::ComputeDemoParticlePhysics => {
         compute_demo::particle_physics::create_pipeline_layout(device)
       }
@@ -61,6 +65,14 @@ impl ShaderEntry {
         shader_defs,
         load_file,
       ),
+      Self::MultisampledTextureDemo => {
+        multisampled_texture_demo::create_shader_module_relative_path(
+          device,
+          base_dir,
+          shader_defs,
+          load_file,
+        )
+      }
       Self::ComputeDemoParticlePhysics => {
         compute_demo::particle_physics::create_shader_module_relative_path(
           device,
@@ -85,6 +97,7 @@ impl ShaderEntry {
       Self::SimpleArrayDemo => simple_array_demo::SHADER_ENTRY_PATH,
       Self::Overlay => overlay::SHADER_ENTRY_PATH,
       Self::GradientTriangle => gradient_triangle::SHADER_ENTRY_PATH,
+      Self::MultisampledTextureDemo => multisampled_texture_demo::SHADER_ENTRY_PATH,
       Self::ComputeDemoParticlePhysics => {
         compute_demo::particle_physics::SHADER_ENTRY_PATH
       }
@@ -1476,6 +1489,211 @@ pub mod gradient_triangle {
       })?;
     let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
       label: Some("gradient_triangle.wgsl"),
+      source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
+    });
+    Ok(shader_module)
+  }
+}
+pub mod multisampled_texture_demo {
+  use super::{_root, _root::*};
+  pub const ENTRY_VS_MAIN: &str = "vs_main";
+  pub const ENTRY_FS_MAIN: &str = "fs_main";
+  pub const ENTRY_VS_MSAA: &str = "vs_msaa";
+  pub const ENTRY_FS_MSAA: &str = "fs_msaa";
+  #[derive(Debug)]
+  pub struct VertexEntry<const N: usize> {
+    pub entry_point: &'static str,
+    pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+    pub constants: Vec<(&'static str, f64)>,
+  }
+  pub fn vertex_state<'a, const N: usize>(
+    module: &'a wgpu::ShaderModule,
+    entry: &'a VertexEntry<N>,
+  ) -> wgpu::VertexState<'a> {
+    wgpu::VertexState {
+      module,
+      entry_point: Some(entry.entry_point),
+      buffers: &entry.buffers,
+      compilation_options: wgpu::PipelineCompilationOptions {
+        constants: &entry.constants,
+        ..Default::default()
+      },
+    }
+  }
+  pub fn vs_main_entry(position: wgpu::VertexStepMode) -> VertexEntry<1> {
+    VertexEntry {
+      entry_point: ENTRY_VS_MAIN,
+      buffers: [wgpu::VertexBufferLayout {
+        array_stride: 12u64,
+        step_mode: position,
+        attributes: &[wgpu::VertexAttribute {
+          format: wgpu::VertexFormat::Float32x3,
+          offset: 0,
+          shader_location: 0,
+        }],
+      }],
+      constants: Default::default(),
+    }
+  }
+  pub fn vs_msaa_entry() -> VertexEntry<0> {
+    VertexEntry {
+      entry_point: ENTRY_VS_MSAA,
+      buffers: [],
+      constants: Default::default(),
+    }
+  }
+  #[derive(Debug)]
+  pub struct FragmentEntry<const N: usize> {
+    pub entry_point: &'static str,
+    pub targets: [Option<wgpu::ColorTargetState>; N],
+    pub constants: Vec<(&'static str, f64)>,
+  }
+  pub fn fragment_state<'a, const N: usize>(
+    module: &'a wgpu::ShaderModule,
+    entry: &'a FragmentEntry<N>,
+  ) -> wgpu::FragmentState<'a> {
+    wgpu::FragmentState {
+      module,
+      entry_point: Some(entry.entry_point),
+      targets: &entry.targets,
+      compilation_options: wgpu::PipelineCompilationOptions {
+        constants: &entry.constants,
+        ..Default::default()
+      },
+    }
+  }
+  pub fn fs_main_entry(targets: [Option<wgpu::ColorTargetState>; 1]) -> FragmentEntry<1> {
+    FragmentEntry {
+      entry_point: ENTRY_FS_MAIN,
+      targets,
+      constants: Default::default(),
+    }
+  }
+  pub fn fs_msaa_entry(targets: [Option<wgpu::ColorTargetState>; 1]) -> FragmentEntry<1> {
+    FragmentEntry {
+      entry_point: ENTRY_FS_MSAA,
+      targets,
+      constants: Default::default(),
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup1EntriesParams<'a> {
+    pub ms_texture: &'a wgpu::TextureView,
+  }
+  #[derive(Clone, Debug)]
+  pub struct WgpuBindGroup1Entries<'a> {
+    pub ms_texture: wgpu::BindGroupEntry<'a>,
+  }
+  impl<'a> WgpuBindGroup1Entries<'a> {
+    pub fn new(params: WgpuBindGroup1EntriesParams<'a>) -> Self {
+      Self {
+        ms_texture: wgpu::BindGroupEntry {
+          binding: 0,
+          resource: wgpu::BindingResource::TextureView(params.ms_texture),
+        },
+      }
+    }
+    pub fn into_array(self) -> [wgpu::BindGroupEntry<'a>; 1] {
+      [self.ms_texture]
+    }
+    pub fn collect<B: FromIterator<wgpu::BindGroupEntry<'a>>>(self) -> B {
+      self.into_array().into_iter().collect()
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuBindGroup1(wgpu::BindGroup);
+  impl WgpuBindGroup1 {
+    pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
+      wgpu::BindGroupLayoutDescriptor {
+        label: Some("MultisampledTextureDemo::BindGroup1::LayoutDescriptor"),
+        entries: &[
+          #[doc = " @binding(0): \"ms_texture\""]
+          wgpu::BindGroupLayoutEntry {
+            binding: 0,
+            visibility: wgpu::ShaderStages::VERTEX_FRAGMENT,
+            ty: wgpu::BindingType::Texture {
+              sample_type: wgpu::TextureSampleType::Float { filterable: false },
+              view_dimension: wgpu::TextureViewDimension::D2,
+              multisampled: true,
+            },
+            count: None,
+          },
+        ],
+      };
+    pub fn get_bind_group_layout(device: &wgpu::Device) -> wgpu::BindGroupLayout {
+      device.create_bind_group_layout(&Self::LAYOUT_DESCRIPTOR)
+    }
+    pub fn from_bindings(device: &wgpu::Device, bindings: WgpuBindGroup1Entries) -> Self {
+      let bind_group_layout = Self::get_bind_group_layout(device);
+      let entries = bindings.into_array();
+      let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+        label: Some("MultisampledTextureDemo::BindGroup1"),
+        layout: &bind_group_layout,
+        entries: &entries,
+      });
+      Self(bind_group)
+    }
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      pass.set_bind_group(1, &self.0, &[]);
+    }
+  }
+  #[doc = " Bind groups can be set individually using their set(render_pass) method, or all at once using `WgpuBindGroups::set`."]
+  #[doc = " For optimal performance with many draw calls, it's recommended to organize bindings into bind groups based on update frequency:"]
+  #[doc = "   - Bind group 0: Least frequent updates (e.g. per frame resources)"]
+  #[doc = "   - Bind group 1: More frequent updates"]
+  #[doc = "   - Bind group 2: More frequent updates"]
+  #[doc = "   - Bind group 3: Most frequent updates (e.g. per draw resources)"]
+  #[derive(Debug, Copy, Clone)]
+  pub struct WgpuBindGroups<'a> {
+    pub bind_group0: &'a global_bindings::WgpuBindGroup0,
+    pub bind_group1: &'a WgpuBindGroup1,
+  }
+  impl<'a> WgpuBindGroups<'a> {
+    pub fn set(&self, pass: &mut impl SetBindGroup) {
+      self.bind_group0.set(pass);
+      self.bind_group1.set(pass);
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 2],
+    ) -> [wgpu::BindGroupLayout; 2] {
+      entries
+    }
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("MultisampledTextureDemo::PipelineLayout"),
+      bind_group_layouts: &[
+        Some(&global_bindings::WgpuBindGroup0::get_bind_group_layout(device)),
+        Some(&WgpuBindGroup1::get_bind_group_layout(device)),
+      ],
+      immediate_size: 0u32,
+    })
+  }
+  pub const SHADER_ENTRY_PATH: &str = "multisampled_texture_demo.wgsl";
+  pub fn create_shader_module_relative_path(
+    device: &wgpu::Device,
+    base_dir: &str,
+    shader_defs: std::collections::HashMap<String, naga_oil::compose::ShaderDefValue>,
+    load_file: impl Fn(&str) -> Result<String, std::io::Error>,
+  ) -> Result<wgpu::ShaderModule, naga_oil::compose::ComposerError> {
+    let mut composer = naga_oil::compose::Composer::default()
+      .with_capabilities(wgpu::naga::valid::Capabilities::from_bits_retain(9u64));
+    let module = ShaderEntry::MultisampledTextureDemo
+      .load_naga_module_from_path(base_dir, &mut composer, shader_defs, load_file)
+      .map_err(|e| naga_oil::compose::ComposerError {
+        inner: naga_oil::compose::ComposerErrorInner::ImportNotFound(e, 0),
+        source: naga_oil::compose::ErrSource::Constructing {
+          path: "load_naga_module_from_path".to_string(),
+          source: "Generated code".to_string(),
+          offset: 0,
+        },
+      })?;
+    let shader_module = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("multisampled_texture_demo.wgsl"),
       source: wgpu::ShaderSource::Naga(std::borrow::Cow::Owned(module)),
     });
     Ok(shader_module)
