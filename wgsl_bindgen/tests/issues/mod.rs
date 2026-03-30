@@ -202,3 +202,26 @@ fn test_duplicate_import_vertexinput_issue() -> Result<()> {
 
   Ok(())
 }
+
+#[test]
+fn test_issue_93_non_struct_vertex() -> Result<()> {
+  WgslBindgenOptionBuilder::default()
+    .workspace_root("tests/shaders/issues")
+    .add_entry_point("tests/shaders/issues/issue_93.wgsl")
+    .skip_hash_check(true)
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .derive_serde(false)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .output("tests/output/issues/issue_93.actual.rs")
+    .build()?
+    .generate()
+    .into_diagnostic()?;
+
+  let actual = read_to_string("tests/output/issues/issue_93.actual.rs").unwrap();
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
+  Ok(())
+}

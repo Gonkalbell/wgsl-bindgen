@@ -1,0 +1,119 @@
+---
+source: wgsl_bindgen/tests/issues/mod.rs
+---
+#![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShaderEntry {
+  Issue93,
+}
+impl ShaderEntry {
+  pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+    match self {
+      Self::Issue93 => issue_93::create_pipeline_layout(device),
+    }
+  }
+  pub fn create_shader_module_embed_source(
+    &self,
+    device: &wgpu::Device,
+  ) -> wgpu::ShaderModule {
+    match self {
+      Self::Issue93 => issue_93::create_shader_module_embed_source(device),
+    }
+  }
+}
+mod _root {
+  pub use super::*;
+}
+pub mod layout_asserts {
+  use super::{_root, _root::*};
+  const WGSL_BASE_TYPE_ASSERTS: () = {
+    assert!(std::mem::size_of::<glam::IVec2>() == 8);
+    assert!(std::mem::align_of::<glam::IVec2>() == 4);
+    assert!(std::mem::size_of::<glam::IVec3>() == 12);
+    assert!(std::mem::align_of::<glam::IVec3>() == 4);
+    assert!(std::mem::size_of::<glam::IVec4>() == 16);
+    assert!(std::mem::align_of::<glam::IVec4>() == 4);
+    assert!(std::mem::size_of::<glam::UVec2>() == 8);
+    assert!(std::mem::align_of::<glam::UVec2>() == 4);
+    assert!(std::mem::size_of::<glam::UVec3>() == 12);
+    assert!(std::mem::align_of::<glam::UVec3>() == 4);
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
+    assert!(std::mem::align_of::<glam::UVec4>() == 4);
+    assert!(std::mem::size_of::<glam::Vec2>() == 8);
+    assert!(std::mem::align_of::<glam::Vec2>() == 4);
+    assert!(std::mem::size_of::<glam::Vec3>() == 12);
+    assert!(std::mem::align_of::<glam::Vec3>() == 4);
+    assert!(std::mem::size_of::<glam::Vec4>() == 16);
+    assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat2>() == 16);
+    assert!(std::mem::align_of::<glam::Mat2>() == 16);
+    assert!(std::mem::size_of::<glam::Mat3A>() == 48);
+    assert!(std::mem::align_of::<glam::Mat3A>() == 16);
+    assert!(std::mem::size_of::<glam::Mat4>() == 64);
+    assert!(std::mem::align_of::<glam::Mat4>() == 16);
+  };
+}
+pub mod issue_93 {
+  use super::{_root, _root::*};
+  pub const ENTRY_MAIN: &str = "main";
+  #[derive(Debug)]
+  pub struct VertexEntry<const N: usize> {
+    pub entry_point: &'static str,
+    pub buffers: [wgpu::VertexBufferLayout<'static>; N],
+    pub constants: Vec<(&'static str, f64)>,
+  }
+  pub fn vertex_state<'a, const N: usize>(
+    module: &'a wgpu::ShaderModule,
+    entry: &'a VertexEntry<N>,
+  ) -> wgpu::VertexState<'a> {
+    wgpu::VertexState {
+      module,
+      entry_point: Some(entry.entry_point),
+      buffers: &entry.buffers,
+      compilation_options: wgpu::PipelineCompilationOptions {
+        constants: &entry.constants,
+        ..Default::default()
+      },
+    }
+  }
+  pub fn main_entry() -> VertexEntry<0> {
+    VertexEntry {
+      entry_point: ENTRY_MAIN,
+      buffers: [],
+      constants: Default::default(),
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 0],
+    ) -> [wgpu::BindGroupLayout; 0] {
+      entries
+    }
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("Issue93::PipelineLayout"),
+      bind_group_layouts: &[],
+      immediate_size: 0u32,
+    })
+  }
+  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
+    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("issue_93.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(source),
+    })
+  }
+  pub const SHADER_STRING: &str = r#"
+struct VertexOutput {
+    @builtin(position) position: vec4<f32>,
+}
+
+@vertex 
+fn main(@location(0) position: vec2<f32>) -> VertexOutput {
+    return VertexOutput(vec4<f32>(position.x, position.y, 0f, 1f));
+}
+"#;
+}
