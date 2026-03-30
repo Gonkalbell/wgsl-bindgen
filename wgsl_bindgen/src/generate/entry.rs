@@ -67,8 +67,11 @@ pub fn vertex_states(invoking_entry_module: &str, module: &naga::Module) -> Toke
           entry_point,
         );
 
+        let vertex_input_primitives =
+          wgsl::get_vertex_input_primitives_for_entry_point(module, entry_point);
+
         let mut step_mode_params = vec![];
-        let layout_expressions: Vec<TokenStream> = vertex_input_structs
+        let mut layout_expressions: Vec<TokenStream> = vertex_input_structs
           .iter()
           .map(|input| {
             let struct_ref = input.item_path.short_token_stream(invoking_entry_module);
@@ -79,6 +82,28 @@ pub fn vertex_states(invoking_entry_module: &str, module: &naga::Module) -> Toke
           })
           .collect();
 
+        for prim in &vertex_input_primitives {
+          let step_mode = Ident::new(&prim.name.to_snake(), Span::call_site());
+          step_mode_params.push(quote!(#step_mode: wgpu::VertexStepMode));
+
+          let format = wgsl::vertex_format(prim.ty);
+          let format_ident = Ident::new(&format!("{format:?}"), Span::call_site());
+          let location = Index::from(prim.location as usize);
+          let stride = format.size();
+
+          layout_expressions.push(quote! {
+              wgpu::VertexBufferLayout {
+                  array_stride: #stride,
+                  step_mode: #step_mode,
+                  attributes: &[wgpu::VertexAttribute {
+                      format: wgpu::VertexFormat::#format_ident,
+                      offset: 0,
+                      shader_location: #location,
+                  }],
+              }
+          });
+        }
+
         let fn_name =
           Ident::new(&format!("{}_entry", &entry_point.name), Span::call_site());
 
@@ -87,7 +112,7 @@ pub fn vertex_states(invoking_entry_module: &str, module: &naga::Module) -> Toke
           Span::call_site(),
         );
 
-        let n = vertex_input_structs.len();
+        let n = vertex_input_structs.len() + vertex_input_primitives.len();
         let n = Literal::usize_unsuffixed(n);
 
         let overrides = if !module.overrides.is_empty() {

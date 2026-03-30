@@ -76,10 +76,18 @@ pub mod issue_93 {
       },
     }
   }
-  pub fn main_entry() -> VertexEntry<0> {
+  pub fn main_entry(position: wgpu::VertexStepMode) -> VertexEntry<1> {
     VertexEntry {
       entry_point: ENTRY_MAIN,
-      buffers: [],
+      buffers: [wgpu::VertexBufferLayout {
+        array_stride: 8u64,
+        step_mode: position,
+        attributes: &[wgpu::VertexAttribute {
+          format: wgpu::VertexFormat::Float32x2,
+          offset: 0,
+          shader_location: 0,
+        }],
+      }],
       constants: Default::default(),
     }
   }

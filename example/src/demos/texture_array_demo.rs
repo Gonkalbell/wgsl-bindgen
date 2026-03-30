@@ -113,9 +113,9 @@ impl Demo for TextureArrayDemo {
     let vertex_buffer = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
       label: Some("vertex buffer"),
       contents: bytemuck::cast_slice(&[
-        shader_bindings::simple_array_demo::VertexInput(glam::vec3(-1.0, -1.0, 0.0)),
-        shader_bindings::simple_array_demo::VertexInput(glam::vec3(3.0, -1.0, 0.0)),
-        shader_bindings::simple_array_demo::VertexInput(glam::vec3(-1.0, 3.0, 0.0)),
+        glam::vec3(-1.0, -1.0, 0.0),
+        glam::vec3(3.0, -1.0, 0.0),
+        glam::vec3(-1.0, 3.0, 0.0),
       ]),
       usage: wgpu::BufferUsages::VERTEX,
     });

@@ -147,6 +147,38 @@ pub fn get_vertex_input_structs<'a>(
     .unwrap_or_default()
 }
 
+pub struct VertexPrimitiveInput<'a> {
+  pub name: String,
+  pub ty: &'a naga::Type,
+  pub location: u32,
+}
+
+pub fn get_vertex_input_primitives_for_entry_point<'a>(
+  module: &'a naga::Module,
+  entry_point: &naga::EntryPoint,
+) -> Vec<VertexPrimitiveInput<'a>> {
+  entry_point
+    .function
+    .arguments
+    .iter()
+    .filter_map(|argument| {
+      if let Some(naga::Binding::Location { location, .. }) = argument.binding {
+        let arg_type = &module.types[argument.ty];
+        Some(VertexPrimitiveInput {
+          name: argument
+            .name
+            .clone()
+            .unwrap_or_else(|| format!("loc{}", location)),
+          ty: arg_type,
+          location,
+        })
+      } else {
+        None
+      }
+    })
+    .collect()
+}
+
 /// Get vertex input structs for a specific vertex entry point
 pub fn get_vertex_input_structs_for_entry_point<'a>(
   invoking_entry_module: &str,

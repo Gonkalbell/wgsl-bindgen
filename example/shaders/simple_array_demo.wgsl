@@ -13,21 +13,17 @@ struct Uniforms {
 @group(2) @binding(0)
 var<uniform> uniforms: Uniforms;
 
-struct VertexInput {
-  @location(0) position: vec3<f32>,
-};
-
 struct VertexOutput {
   @builtin(position) clip_position: vec4<f32>,
   @location(0) tex_coords: vec2<f32>,
 };
 
 @vertex
-fn vs_main(in: VertexInput) -> VertexOutput {
+fn vs_main(@location(0) position: vec3<f32>) -> VertexOutput {
   //A fullscreen triangle.
   var out: VertexOutput;
-  out.clip_position = vec4(in.position.xyz, Constants::ONE);
-  out.tex_coords = in.position.xy * 0.5 + 0.5;
+  out.clip_position = vec4(position.xyz, Constants::ONE);
+  out.tex_coords = position.xy * 0.5 + 0.5;
   return out;
 }
 
