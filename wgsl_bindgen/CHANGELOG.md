@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.1](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.22.0...wgsl_bindgen-v0.22.1) - 2026-03-30
+
+### Other
+
+- Added wgpu support version matrix
+- Added multisampled texture example
+- Fix issue #93
+- Reproduce issue#93
+
 ## [0.22.0](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.21.3...wgsl_bindgen-v0.22.0) - 2026-03-29
 
 ### Other
