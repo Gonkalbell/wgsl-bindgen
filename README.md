@@ -48,6 +48,21 @@ bind_group.set(&mut render_pass); // Simple, safe usage
 - 🔧 **Flexible**: Works with bytemuck, encase, serde, and custom types
 - ⚡ **Fast**: Build-time generation with intelligent caching
 
+## 📦 Version Matrix
+
+`wgsl_bindgen` is tightly coupled to `wgpu` due to the code it generates. Here is the compatibility matrix:
+
+| `wgsl_bindgen` | `wgpu` |
+| -------------- | ------ |
+| **0.22.x**     | **29.x** |
+| 0.21.2 - 0.21.3| 26.x   |
+| 0.19.0 - 0.21.1| 25.x   |
+| 0.16.0 - 0.18.2| 24.x   |
+| 0.15.2         | 23.x   |
+| 0.15.0 - 0.15.1| 22.x   |
+| 0.12.0 - 0.14.1| 0.20.x |
+| 0.5.1 - 0.11.0 | 0.19.x |
+
 ## Features
 
 ### General:
