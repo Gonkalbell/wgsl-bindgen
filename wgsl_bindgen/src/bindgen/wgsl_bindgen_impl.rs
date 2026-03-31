@@ -77,6 +77,7 @@ impl WGSLBindgen {
     entry: SourceWithFullDependenciesResult<'a>,
     workspace_root: &std::path::Path,
     shader_defs: &[(String, naga_oil::compose::ShaderDefValue)],
+    add_override_ids: bool,
   ) -> Result<WgslEntryResult<'a>, WgslBindgenError> {
     let map_err = |composer: &Composer, err: ComposerError| {
       let msg = err.emit_to_string(composer);
@@ -113,7 +114,7 @@ impl WGSLBindgen {
         .map_err(|err| map_err(&composer, err))?;
     }
 
-    let module = composer
+    let mut module = composer
       .make_naga_module(NagaModuleDescriptor {
         source: &source.content,
         file_path: &source.file_path.to_string(),
@@ -121,6 +122,30 @@ impl WGSLBindgen {
         ..Default::default()
       })
       .map_err(|err| map_err(&composer, err))?;
+
+    if add_override_ids {
+      // When using `EmbedSource`, wgsl_bindgen uses naga to serialize the AST back into a WGSL string.
+      // However, Naga's WGSL writer may mangle override names (e.g. `b1` -> `b1_`) to avoid keyword collisions.
+      // If we rely on names, WGPU will panic at runtime because the Rust string key won't match the mangled WGSL name.
+      // To fix this, we inject explicit `@id(...)` attributes into the AST, which Naga preserves and WGPU respects.
+      // We only do this when embedding the source (`add_override_ids = true`), because if the user loads
+      // the raw file from disk at runtime, those generated IDs wouldn't exist in their file.
+      // We calculate `next_id` starting from the highest user-defined ID to avoid accidental collisions.
+      let mut next_id = module
+        .overrides
+        .iter()
+        .filter_map(|(_, o)| o.id)
+        .max()
+        .unwrap_or(0)
+        + 1;
+
+      for (_, o) in module.overrides.iter_mut() {
+        if o.id.is_none() {
+          o.id = Some(next_id);
+          next_id += 1;
+        }
+      }
+    }
 
     Ok(WgslEntryResult {
       mod_name: source.file_path.module_path(workspace_root),
@@ -155,6 +180,10 @@ impl WGSLBindgen {
           it,
           &self.options.workspace_root,
           &self.options.shader_defs,
+          self
+            .options
+            .shader_source_type
+            .contains(crate::WgslShaderSourceType::EmbedSource),
         )
       })
       .collect::<Result<Vec<_>, _>>()?;

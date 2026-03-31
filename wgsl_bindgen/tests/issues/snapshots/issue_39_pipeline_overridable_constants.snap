@@ -1,0 +1,140 @@
+---
+source: wgsl_bindgen/tests/issues/mod.rs
+---
+#![allow(unused, non_snake_case, non_camel_case_types, non_upper_case_globals)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub enum ShaderEntry {
+  Issue39,
+}
+impl ShaderEntry {
+  pub fn create_pipeline_layout(&self, device: &wgpu::Device) -> wgpu::PipelineLayout {
+    match self {
+      Self::Issue39 => issue_39::create_pipeline_layout(device),
+    }
+  }
+  pub fn create_shader_module_embed_source(
+    &self,
+    device: &wgpu::Device,
+  ) -> wgpu::ShaderModule {
+    match self {
+      Self::Issue39 => issue_39::create_shader_module_embed_source(device),
+    }
+  }
+}
+mod _root {
+  pub use super::*;
+}
+pub mod layout_asserts {
+  use super::{_root, _root::*};
+  const WGSL_BASE_TYPE_ASSERTS: () = {
+    assert!(std::mem::size_of::<glam::IVec2>() == 8);
+    assert!(std::mem::align_of::<glam::IVec2>() == 4);
+    assert!(std::mem::size_of::<glam::IVec3>() == 12);
+    assert!(std::mem::align_of::<glam::IVec3>() == 4);
+    assert!(std::mem::size_of::<glam::IVec4>() == 16);
+    assert!(std::mem::align_of::<glam::IVec4>() == 4);
+    assert!(std::mem::size_of::<glam::UVec2>() == 8);
+    assert!(std::mem::align_of::<glam::UVec2>() == 4);
+    assert!(std::mem::size_of::<glam::UVec3>() == 12);
+    assert!(std::mem::align_of::<glam::UVec3>() == 4);
+    assert!(std::mem::size_of::<glam::UVec4>() == 16);
+    assert!(std::mem::align_of::<glam::UVec4>() == 4);
+    assert!(std::mem::size_of::<glam::Vec2>() == 8);
+    assert!(std::mem::align_of::<glam::Vec2>() == 4);
+    assert!(std::mem::size_of::<glam::Vec3>() == 12);
+    assert!(std::mem::align_of::<glam::Vec3>() == 4);
+    assert!(std::mem::size_of::<glam::Vec4>() == 16);
+    assert!(std::mem::align_of::<glam::Vec4>() == 16);
+    assert!(std::mem::size_of::<glam::Mat2>() == 16);
+    assert!(std::mem::align_of::<glam::Mat2>() == 16);
+    assert!(std::mem::size_of::<glam::Mat3A>() == 48);
+    assert!(std::mem::align_of::<glam::Mat3A>() == 16);
+    assert!(std::mem::size_of::<glam::Mat4>() == 64);
+    assert!(std::mem::align_of::<glam::Mat4>() == 16);
+  };
+}
+pub mod issue_39 {
+  use super::{_root, _root::*};
+  pub struct OverrideConstants {
+    pub b1: Option<bool>,
+    pub f1: Option<f32>,
+  }
+  impl OverrideConstants {
+    pub fn constants(&self) -> Vec<(&'static str, f64)> {
+      let mut entries = vec![];
+      if let Some(value) = self.b1 {
+        entries.push(("1", if value { 1.0 } else { 0.0 }));
+      };
+      if let Some(value) = self.f1 {
+        entries.push(("2", value as f64));
+      }
+      entries
+    }
+  }
+  pub const ENTRY_MAIN: &str = "main";
+  #[derive(Debug)]
+  pub struct FragmentEntry<const N: usize> {
+    pub entry_point: &'static str,
+    pub targets: [Option<wgpu::ColorTargetState>; N],
+    pub constants: Vec<(&'static str, f64)>,
+  }
+  pub fn fragment_state<'a, const N: usize>(
+    module: &'a wgpu::ShaderModule,
+    entry: &'a FragmentEntry<N>,
+  ) -> wgpu::FragmentState<'a> {
+    wgpu::FragmentState {
+      module,
+      entry_point: Some(entry.entry_point),
+      targets: &entry.targets,
+      compilation_options: wgpu::PipelineCompilationOptions {
+        constants: &entry.constants,
+        ..Default::default()
+      },
+    }
+  }
+  pub fn main_entry(
+    targets: [Option<wgpu::ColorTargetState>; 1],
+    overrides: &OverrideConstants,
+  ) -> FragmentEntry<1> {
+    FragmentEntry {
+      entry_point: ENTRY_MAIN,
+      targets,
+      constants: overrides.constants(),
+    }
+  }
+  #[derive(Debug)]
+  pub struct WgpuPipelineLayout;
+  impl WgpuPipelineLayout {
+    pub fn bind_group_layout_entries(
+      entries: [wgpu::BindGroupLayout; 0],
+    ) -> [wgpu::BindGroupLayout; 0] {
+      entries
+    }
+  }
+  pub fn create_pipeline_layout(device: &wgpu::Device) -> wgpu::PipelineLayout {
+    device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
+      label: Some("Issue39::PipelineLayout"),
+      bind_group_layouts: &[],
+      immediate_size: 0u32,
+    })
+  }
+  pub fn create_shader_module_embed_source(device: &wgpu::Device) -> wgpu::ShaderModule {
+    let source = std::borrow::Cow::Borrowed(SHADER_STRING);
+    device.create_shader_module(wgpu::ShaderModuleDescriptor {
+      label: Some("issue_39.wgsl"),
+      source: wgpu::ShaderSource::Wgsl(source),
+    })
+  }
+  pub const SHADER_STRING: &str = r#"
+@id(1) override b1_: bool = true;
+@id(2) override f1_: f32 = 0.5f;
+
+@fragment 
+fn main() -> @location(0) vec4<f32> {
+    if b1_ {
+        return vec4<f32>(f1_, 0f, 0f, 1f);
+    }
+    return vec4<f32>(0f, 0f, 0f, 1f);
+}
+"#;
+}

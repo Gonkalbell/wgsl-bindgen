@@ -227,6 +227,28 @@ fn test_issue_93_non_struct_vertex() -> Result<()> {
 }
 
 #[test]
+fn test_issue_39_pipeline_overridable_constants() -> Result<()> {
+  let actual = WgslBindgenOptionBuilder::default()
+    .workspace_root("tests/shaders/issues")
+    .add_entry_point("tests/shaders/issues/issue_39.wgsl")
+    .skip_hash_check(true)
+    .serialization_strategy(WgslTypeSerializeStrategy::Bytemuck)
+    .type_map(GlamWgslTypeMap)
+    .shader_source_type(WgslShaderSourceType::EmbedSource)
+    .derive_serde(false)
+    .emit_rerun_if_change(false)
+    .skip_header_comments(true)
+    .build()?
+    .generate_string()
+    .into_diagnostic()?;
+
+  let parsed_output = parse_str(&actual).unwrap();
+  assert_tokens_snapshot!(parsed_output);
+  assert_rust_compilation!(parsed_output);
+  Ok(())
+}
+
+#[test]
 fn test_issue_92_multisampled_textures() -> Result<()> {
   let actual = WgslBindgenOptionBuilder::default()
     .workspace_root("tests/shaders/issues")

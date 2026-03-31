@@ -116,7 +116,7 @@ pub fn pipeline_overridable_constants(
 
               Some(quote! {
                   if let Some(value) = self.#name {
-                      entries.insert(#key.to_owned(), #value);
+                      entries.push((#key, #value));
                   }
               })
           } else {
