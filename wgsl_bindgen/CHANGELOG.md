@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.22.2](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.22.1...wgsl_bindgen-v0.22.2) - 2026-03-31
+
+### Fixed
+
+- Allow using pipeline overrideable immediates in embedded mode ([#39](https://github.com/Swoorup/wgsl-bindgen/pull/39))
+
 ## [0.22.1](https://github.com/Swoorup/wgsl-bindgen/compare/wgsl_bindgen-v0.22.0...wgsl_bindgen-v0.22.1) - 2026-03-30
 
 ### Other
