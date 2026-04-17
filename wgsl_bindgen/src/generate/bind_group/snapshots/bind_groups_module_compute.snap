@@ -1,5 +1,6 @@
 ---
 source: wgsl_bindgen/src/generate/bind_group/mod.rs
+assertion_line: 403
 ---
 #[derive(Debug)]
 pub struct WgpuBindGroup0EntriesParams<'a> {
@@ -37,8 +38,8 @@ impl<'a> WgpuBindGroup0Entries<'a> {
     self.into_array().into_iter().collect()
   }
 }
-#[derive(Debug)]
-pub struct WgpuBindGroup0(wgpu::BindGroup);
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
+pub struct WgpuBindGroup0(pub wgpu::BindGroup);
 impl WgpuBindGroup0 {
   pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
     wgpu::BindGroupLayoutDescriptor {
@@ -124,8 +125,8 @@ impl<'a> WgpuBindGroup1Entries<'a> {
     self.into_array().into_iter().collect()
   }
 }
-#[derive(Debug)]
-pub struct WgpuBindGroup1(wgpu::BindGroup);
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
+pub struct WgpuBindGroup1(pub wgpu::BindGroup);
 impl WgpuBindGroup1 {
   pub const LAYOUT_DESCRIPTOR: wgpu::BindGroupLayoutDescriptor<'static> =
     wgpu::BindGroupLayoutDescriptor {

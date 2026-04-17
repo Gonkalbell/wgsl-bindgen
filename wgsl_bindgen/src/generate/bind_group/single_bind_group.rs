@@ -276,8 +276,8 @@ impl<'a> BindGroupStructBuilder<'a> {
     let bind_group_name = self.struct_name();
 
     let group_struct = quote! {
-        #[derive(Debug)]
-        pub struct #bind_group_name(wgpu::BindGroup);
+        #[derive(Clone, Debug, Eq, Hash, Ord, PartialOrd, PartialEq)]
+        pub struct #bind_group_name(pub wgpu::BindGroup);
     };
 
     let group_impl = self.bind_group_struct_impl();
